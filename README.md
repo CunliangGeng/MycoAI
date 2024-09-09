@@ -4,7 +4,7 @@
 Welcome! MycoAI is a Python package that implements deep learning models for the
 classification of (fungal ITS) barcode sequences. Our most sophisticated model
 is trained on the [UNITE](https://unite.ut.ee/) dataset, giving it a class 
-coverage of 14,742 species and 3,695 genera. In our [paper](todo.com), we show 
+coverage of 14,742 species and 3,695 genera. In our [paper](https://onlinelibrary.wiley.com/doi/10.1111/1755-0998.14006), we show 
 that MycoAI achieves a higher accuracy than RDP classifier (the previous 
 state-of-the-art fast fungal classification algorithm) on independent test sets. 
 Furthermore, MycoAI is capable of classifying large datasets of 100,000+ 
