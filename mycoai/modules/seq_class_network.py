@@ -133,14 +133,16 @@ class SeqClassNetwork(torch.nn.Module):
                 x = self.fcn[i](x)
         return x     
 
-    def classify(self, input_data):
+    def classify(self, input_data, return_conf=False):
         '''Classifies sequences in FASTA file, Data, or TensorData object, 
         returns a pandas DataFrame.'''
 
         t0 = time.time()
         self.eval()
         input_data, ids = self._encode_input_data(input_data, return_ids=True)
-        predictions = self._predict(input_data)
+        predictions = self._predict(input_data, return_conf=return_conf)
+        if return_conf:
+            predictions, confidence = predictions
         predictions = [pred_level.cpu().numpy() for pred_level in predictions]
         predictions = np.stack(predictions, axis=1)
         predictions = self.tax_encoder.decode(predictions)
@@ -152,6 +154,13 @@ class SeqClassNetwork(torch.nn.Module):
         classification = pd.DataFrame(classification, 
                                       columns=['id'] + utils.LEVELS)
         classification[self.masked_levels] = utils.UNKNOWN_STR
+
+        if return_conf:
+            confidence = [conf_level.cpu().numpy() for conf_level in confidence]
+            confidence = np.stack(confidence, axis=1)
+            cols = [f'P({lvl})' for lvl in utils.LEVELS]
+            classification[cols] = confidence
+
         return classification
     
     def set_max_level(self, level):
@@ -169,31 +178,44 @@ class SeqClassNetwork(torch.nn.Module):
         Useful when model does not have a sufficient accuracy on a level.'''
         self.masked_levels = levels
     
-    def _predict(self, data, return_labels=False):
+    def _predict(self, data, return_labels=False, return_conf=False):
         '''Returns predictions for entire dataset.
         
         data: mycoai.TensorData
             Deathcap TensorData object containing sequence and taxonomy Tensors
         return_labels: bool
-            Whether to include the true target labels in the return'''
+            Whether to include the true target labels in the return
+        return_conf: bool
+            Whether to include confidence score for prediction in return'''
 
         dataloader = torch.utils.data.DataLoader(data, shuffle=False,
                         batch_size=utils.PRED_BATCH_SIZE)
-        predictions, labels = [[] for i in range(len(self.classes))], []
+        predictions = [[] for i in range(len(self.classes))]
+        confidence = [[] for i in range(len(self.classes))]
+        labels = []
         
         with torch.no_grad():
             for (x,y) in dataloader:
                 x, y = x.to(utils.DEVICE), y.to(utils.DEVICE)
                 y_pred = self(x)
                 for i in range(len(self.classes)):
-                    predictions[i].append(torch.argmax(y_pred[i], dim=1).cpu())
+                    conf, pred = torch.max(y_pred[i], dim=1)
+                    predictions[i].append(pred.cpu())
+                    confidence[i].append(conf.cpu())
                 labels.append(y.cpu())
-            predictions = [torch.cat(level) for level in predictions]
-        
-        if return_labels:
-                return predictions, torch.cat(labels)
-        else:
+        predictions = [torch.cat(lvl) for lvl in predictions]
+        confidence = [torch.cat(lvl) for lvl in confidence]
+        labels = torch.cat(labels)
+
+        if not return_labels and not return_conf:
             return predictions
+        elif not return_conf:
+            return predictions, labels
+        else:
+            if not return_labels:
+                return predictions, confidence
+            else: 
+                return predictions, labels, confidence
         
     def _encode_input_data(self, input_data, return_ids=False):
         '''Encodes a FASTA file/Data object into TensorData object.'''

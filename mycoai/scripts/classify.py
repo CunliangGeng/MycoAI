@@ -3,12 +3,13 @@ import torch
 from mycoai import utils
 
 def classify(fasta_filepath, output_filepath=utils.OUTPUT_DIR+'prediction.csv', 
-             model='models/MycoAI-multi-HLS.pt', device=utils.DEVICE):
+             model='models/MycoAI-multi-HLS.pt', confidence=False, 
+             device=utils.DEVICE):
     '''Predicts the taxonomies of sequences in file with specified method'''
     
     utils.set_device(device)
     deep_its_model = torch.load(model, map_location=utils.DEVICE)
-    prediction = deep_its_model.classify(fasta_filepath)
+    prediction = deep_its_model.classify(fasta_filepath, return_conf=confidence)
     prediction.to_csv(output_filepath)
     print(f"Classification saved to {output_filepath}")
     
@@ -35,6 +36,11 @@ def main():
         help="Path to saved SeqClassNetwork Pytorch model (default is \
               models/MycoAI-multi-HLS.pt).")
     
+    parser.add_argument('--confidence', 
+        default=False,
+        action='store_true',
+        help="If specified, will include confidence scores (default is False).")
+    
     parser.add_argument('--device', 
         default=[utils.DEVICE],
         type=str,
@@ -44,7 +50,8 @@ def main():
     
     args = parser.parse_args()
     classify(args.fasta_filepath, output_filepath=args.out[0], 
-             model=args.model[0], device=args.device[0])
+             model=args.model[0], confidence=args.confidence, 
+             device=args.device[0])
 
 
 if __name__ == '__main__':

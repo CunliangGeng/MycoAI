@@ -100,6 +100,7 @@ Output is written to a .csv file.
 | `fasta_filepath` | Yes | Path to the FASTA file containing ITS sequences. | path 
 | `--out`   | No | Where to save the output to (default is 'prediction.csv') | path
 | `--model` | No |  Path to saved SeqClassNetwork model (default is 'models/MycoAI-multi-HLS.pt'). | path
+| `--confidence` | No | If specified, will include confidence scores (default is False). | - 
 | `--device` | No | Forces use of specific device. By default, MycoAI will look for and use GPUs whenever available and falls back to CPU if unsuccessful. | ['cpu', 'cuda', 'cuda:0', etc.]
 
 # Evaluation
