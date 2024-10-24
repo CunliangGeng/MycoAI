@@ -8,4 +8,4 @@ from mycoai import utils
 utils.set_device('cuda')
 
 # Set up weights & biases
-wandb.login('allow')
+wandb.init(mode="disabled")
